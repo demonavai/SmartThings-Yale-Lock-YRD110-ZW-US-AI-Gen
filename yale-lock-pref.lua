@@ -3,8 +3,8 @@ local Zwave = require "st.zwave"
 local zw = require "st.zwave.commands"
 local log = require "log"
 
-local YALE_MANUFACTURER_ID = 0x0086
-local YALE_LOCK_MODEL_ID = 0x0101
+local YALE_MANUFACTURER_ID = 0x4003
+local YALE_LOCK_MODEL_ID = 0x0800
 local YALE_LOCK_FINGERPRINT = string.format("%04X-%04X-003B", YALE_MANUFACTURER_ID, YALE_LOCK_MODEL_ID)
 
 local function device_added(driver, device)
