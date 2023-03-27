@@ -1,0 +1,109 @@
+-- Yale Z-Wave Lock Driver for SmartThings
+-- Model: YRD110-ZW-US
+-- Author: ChatGPT
+-- Date: 2023-03-26
+
+local capabilities = require "st.capabilities"
+local z_wave = require "st.zwave"
+local device_management = require "st.device_management"
+local utils = require "st.utils"
+
+local YALE_ZWAVE_LOCK_FINGERPRINT = {
+  mfr = "0129",
+  prod = "0004",
+  model = "0800"
+}
+
+local function is_yale_zwave_lock(device)
+  return utils.device_fingerprint_match(device, YALE_ZWAVE_LOCK_FINGERPRINT)
+end
+
+local function device_init(self, device)
+  -- This function is called when the driver is first initialized
+end
+
+local function device_added(self, device)
+  -- This function is called when the device is added to SmartThings
+end
+
+local function device_removed(self, device)
+  -- This function is called when the device is removed from SmartThings
+end
+
+local function device_event_handler(self, event)
+  -- This function handles events from the device
+end
+
+local function setAutoRelock(device, value)
+  -- Set the auto-relock feature based on the user's preference
+end
+
+local function lock(device)
+  -- Send the lock command to the device
+end
+
+local function unlock(device)
+  -- Send the unlock command to the device
+end
+
+local function refresh(device)
+  -- Refresh the device's state
+end
+
+local function configure(device)
+  -- Configure the device based on user preferences
+end
+
+local function handleUnlockCommand(device, command)
+  -- Handle the unlock command from the SmartThings app
+end
+
+local function handleConfigureCommand(device, command)
+  -- Handle the configure command from the SmartThings app
+end
+
+local function handleRefreshCommand(device, command)
+  -- Handle the refresh command from the SmartThings app
+end
+
+local function device_preferences(device)
+  -- Retrieve the user preferences for the device from the SmartThings app
+end
+
+local function update_device(device)
+  -- Update the device's state based on received events
+end
+
+local yale_zwave_lock_driver = {
+  supported_capabilities = {
+    capabilities.lock,
+    capabilities.lockCodes,
+    capabilities.battery,
+    capabilities.configuration,
+    capabilities.healthCheck,
+    capabilities.actuator,
+    capabilities.sensor,
+    capabilities.polling,
+    capabilities.refresh,
+  },
+  lifecycle_handlers = {
+    init = device_init,
+    added = device_added,
+    removed = device_removed,
+    event = device_event_handler,
+  },
+  command_handlers = {
+    [capabilities.lock.commands.lock.NAME] = lock,
+    [capabilities.lock.commands.unlock.NAME] = unlock,
+    [capabilities.refresh.commands.refresh.NAME] = refresh,
+    [capabilities.configuration.commands.configure.NAME] = configure,
+  },
+  preference_handlers = {
+    updated = device_preferences,
+  },
+  is_compatible_with_device = is_yale_zwave_lock,
+}
+
+device_management.register_driver("yale_zwave_lock", yale_zwave_lock_driver)
+
+return yale_zwave_lock_driver
