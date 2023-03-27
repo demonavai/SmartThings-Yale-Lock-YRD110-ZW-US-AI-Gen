@@ -190,9 +190,6 @@ local function refresh(device)
   device:send(Zwave.zwave.Command.DOOR_LOCK_OPERATION_GET())
 end
 
-
-
-
 -- .
 -- . configure
 -- .
@@ -238,12 +235,10 @@ local function configure(device, configuration)
   setAutoRelock(device, autoRelock, autoRelockTime)
 end
 
-
-
-
-
-
-
+-- .
+-- . handleLockCommand
+-- .
+-- .
 -- This function handles the lock command by locking the device and logging the command name
 local function handleLockCommand(driver, device, command)
   log.debug("handleLockCommand: " .. command.name)
