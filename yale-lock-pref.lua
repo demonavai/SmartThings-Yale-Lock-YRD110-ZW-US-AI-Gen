@@ -1,7 +1,6 @@
 -- Import required modules and define device capabilities
 local capabilities = require "st.capabilities"
-local Zwave = require "st.zwave"
-local zw = require "st.zwave.commands"
+ 
 local log = require "log"
 local Battery = capabilities.battery
 local Lock = capabilities.lock
