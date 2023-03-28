@@ -205,47 +205,58 @@ end
 -- . configure
 -- .
 -- .
--- Configure device with given configuration
+-- Configure device with given configuration based on user preferences
 local function configure(driver, device)
-  -- Configure the device based on user preferences
-  -- Set autoRelock to false if not provided in the configuration
-  local autoRelock = configuration.auto_relock or false
-  -- Set autoRelockTime to 30 seconds if not provided in the configuration
-  local autoRelockTime = configuration.auto_relock_time or 30
-  -- Set statusReport to false if not provided in the configuration
-  local statusReport = configuration.status_report or false
-  -- Set audibleAlarm to false if not provided in the configuration
-  local audibleAlarm = configuration.audible_alarm or false
+    -- Set autoRelock to false if not provided in the configuration
+    local autoRelock = device.preferences.auto_relock or false
+    -- Set autoRelockTime to 30 seconds if not provided in the configuration
+    local autoRelockTime = device.preferences.auto_relock_time or 30
+    -- Set statusReport to false if not provided in the configuration
+    local statusReport = device.preferences.status_report or false
+    -- Set audibleAlarm to false if not provided in the configuration
+    local audibleAlarm = device.preferences.audible_alarm or false
 
-  -- Enable debugging if statusReport is true, otherwise disable debugging
-  if statusReport then
-    device:enable_debugging()
-  else
-    device:disable_debugging()
-  end
+    -- Enable debugging if statusReport is true, otherwise disable debugging
+    if statusReport then
+        device:enable_debugging()
+    else
+        device:disable_debugging()
+    end
 
-  -- Set the audible alarm configuration value based on the audibleAlarm value
-  if audibleAlarm then
-    device:send(Zwave.zwave.Command.CONFIGURATION_SET({
-      configuration_value = 255,
-      parameter_number = 5,
-      size = 1,
-      scaled_configuration_value = 255,
-      precision = 0
-    }))
-  else
-    device:send(Zwave.zwave.Command.CONFIGURATION_SET({
-      configuration_value = 0,
-      parameter_number = 5,
-      size = 1,
-      scaled_configuration_value = 0,
-      precision = 0
-    }))
-  end
+    -- Set the auto-relock feature based on the user preference
+    if autoRelock then
+        local cmd = zw.CONFIGURATION_SET({
+        parameter_number = 111,
+        size = 4,
+        configuration_value = autoRelockTime,
+        scaled_configuration_value = autoRelockTime,
+        precision = 0
+        })
+        device:send(cmd)
+    end
 
-  -- Set the autoRelock configuration value based on the autoRelock and autoRelockTime values
-  setAutoRelock(device, autoRelock, autoRelockTime)
+    -- Set the audible alarm configuration value based on the audibleAlarm value
+    if audibleAlarm then
+        local cmd = zw.CONFIGURATION_SET({
+        configuration_value = 255,
+        parameter_number = 5,
+        size = 1,
+        scaled_configuration_value = 255,
+        precision = 0
+        })
+        device:send(cmd)
+    else
+        local cmd = zw.CONFIGURATION_SET({
+        configuration_value = 0,
+        parameter_number = 5,
+        size = 1,
+        scaled_configuration_value = 0,
+        precision = 0
+        })
+        device:send(cmd)
+    end
 end
+  
 
 -- .
 -- . handleLockCommand
@@ -255,18 +266,23 @@ end
 local function handleLockCommand(driver, device, command)
     log.debug("handleLockCommand: " .. command.name)
     lock(device)
-  end
+end
 
 -- .
 -- . handleUnlockCommand
 -- .
 -- .
--- This function handles the unlock command by unlocking the device and logging the command name
+-- This function handles the unlock command by unlocking the device and logging the command name.
 local function handleUnlockCommand(driver, device, command)
-  -- Handle the unlock command from the SmartThings app
-  log.debug("handleUnlockCommand: " .. command.name)
-  unlock(device)
+    -- Send the unlock command to the device
+    device:send(zw.send(zw.command_classes.DOOR_LOCK.ID, zw.command_classes.DOOR_LOCK.UNLOCK()))
+    local result = command:success()
+    if result == nil then
+      log.warn("Unable to send unlock command")
+    end
 end
+  
+  
 
 -- .
 -- . handleConfigureCommand
@@ -349,6 +365,42 @@ local function device_preferences(driver, device)
       pattern = "%d+",
     },
   }
+
+  -- Retrieve the existing user codes
+    -- Create an empty table to store the user code preferences
+    local userCodes = {}
+    -- Loop through each of the 15 possible users
+    for i = 1, 15 do
+    -- Create a section header for each user
+    table.insert(userCodes, {
+        type = "section",
+        label = "User " .. i .. " Settings",
+        header = true,
+    })
+    -- Create a field for the user code
+    table.insert(userCodes, {
+        type = "input",
+        name = "userCode" .. i,
+        label = "User Code",
+        description = "Enter a new user code for user " .. i .. ".",
+        required = false,
+        pattern = "%d+",
+    })
+    -- Create a field for the user name
+    table.insert(userCodes, {
+        type = "input",
+        name = "userName" .. i,
+        label = "User Name",
+        description = "Enter a name for user " .. i .. ".",
+        required = false,
+    })
+    end
+
+    -- Merge the user code preferences into the existing preferences table
+    for _, userCode in ipairs(userCodes) do
+    table.insert(preferences, userCode)
+    end
+
 end
 
 local function update_device(driver, device)
