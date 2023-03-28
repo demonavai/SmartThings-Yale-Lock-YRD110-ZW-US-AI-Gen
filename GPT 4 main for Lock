@@ -34,6 +34,19 @@ local function device_init(driver, device)
   
   -- Send a command to the device to get its current door lock operation state
   device:send(Zwave.zwave.Command.DOOR_LOCK_OPERATION_GET())
+
+  -- Retrieve the user codes from the device and store them in the user preferences
+  for i = 1, 20 do
+    local lockCode = device:getValue(zwave.command_classes.USER_CODE.ID, i)
+    if lockCode ~= nil then
+      local lockCodeLength = string.len(tostring(lockCode))
+      if lockCodeLength >= 4 and lockCodeLength <= 6 then
+        device.preferences["userCode" .. i] = string.format("%0" .. lockCodeLength .. "d", lockCode)
+      else
+        log.warn("Invalid lock code length for user " .. i .. ": " .. lockCodeLength)
+      end
+    end
+  end
 end
 
 -- .
@@ -329,6 +342,18 @@ local function device_preferences(driver, device)
       pattern = "%d+",
     },
     {
+        type = "enum",
+        name = "panelLockout",
+        label = "Panel Lockout",
+        description = "Enable or disable the panel lockout feature of the lock.",
+        values = {
+          { value = "enabled", label = "Enabled" },
+          { value = "disabled", label = "Disabled" },
+        },
+        default = "disabled",
+        required = true,
+    },
+    {
       type = "input",
       name = "lockSoundVolume",
       label = "Lock Sound Volume (0-10)",
@@ -384,8 +409,8 @@ local function device_preferences(driver, device)
         label = "User Code",
         description = "Enter a new user code for user " .. i .. ".",
         required = false,
-        pattern = "%d+",
-    })
+        pattern = "%d%d%d%d%d?%d?",
+      })
     -- Create a field for the user name
     table.insert(userCodes, {
         type = "input",
@@ -403,9 +428,52 @@ local function device_preferences(driver, device)
 
 end
 
-local function update_device(driver, device)
-  -- Update the device's state based on received events
-end
+-- .
+-- . update_device
+-- .
+-- .
+-- Handle device events and emit events for SmartThings to consume
+local function update_device(driver, device, event)
+    local event_type = event.type
+  
+    -- Handle lock/unlock events and panel lockout
+    if event_type == zwave.CommandClass.NOTIFICATION then
+      local alarm_type = event.args.notification_type
+  
+      -- Check if the lock has been locked by keypad, command, RF, or auto-lock
+      if alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_KEYPAD or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_COMMAND or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_RF or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_AUTO
+      then
+        device:emit_event(locks.locked())
+
+      -- Check if the lock has been unlocked by keypad, command, or RF
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_KEYPAD or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_COMMAND or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_RF
+      then
+        device:emit_event(locks.unlocked())
+
+      -- Check if the lock is jammed
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.JAMMED_LOCK then
+        device:emit_event(locks.jammed())
+        
+      -- Check if panel lockout is enabled or disabled
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.PANEL_LOCKOUT_ENABLED then
+        device:emit_event(locks.panel_lockout_enabled())
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.PANEL_LOCKOUT_DISABLED then
+        device:emit_event(locks.panel_lockout_disabled())
+      end
+
+    -- Handle battery events
+    elseif event_type == zwave.CommandClass.BATTERY then
+      local battery_level = event.args.battery_level
+      device:emit_event(battery.battery(battery_level))
+    end
+  end
+
+
 
 local yale_zwave_lock_driver = {
   supported_capabilities = {

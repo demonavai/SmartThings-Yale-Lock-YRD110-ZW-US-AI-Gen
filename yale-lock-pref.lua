@@ -316,12 +316,12 @@ local function device_preferences()
         pattern = "%d+",
       },
     }
-  end
+end
 
 
 
 
-  local function configure(device)
+local function configure(device)
     -- Set the device parameters based on the user preferences
     for _, preference in ipairs(preferences) do
       local value = device.preferences[preference.key]
@@ -343,7 +343,7 @@ local function device_preferences()
     end
   end
 
-  local function updatedevice(device, event)
+local function updatedevice(device, event)
     local event_type = event.type
     if event_type == zwave.CommandClass.NOTIFICATION then
       local alarm_type = event.args.notification_type
@@ -363,7 +363,7 @@ local function device_preferences()
       local battery_level = event.args.battery_level
       device:emit_event(battery.battery(battery_level))
     end
-  end
+end
   
   local function capabilities()
     return {
@@ -395,4 +395,47 @@ local function device_preferences()
   end
 
 
+  
+
+
+
+
+  local function updatedevice(driver, device, event)
+    local event_type = event.type
+  
+    -- Handle lock/unlock events and panel lockout
+    if event_type == zwave.CommandClass.NOTIFICATION then
+      local alarm_type = event.args.notification_type
+  
+      -- Check if the lock has been locked by keypad, command, RF, or auto-lock
+      if alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_KEYPAD or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_COMMAND or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_RF or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.LOCKED_BY_AUTO
+      then
+        device:emit_event(locks.locked())
+
+      -- Check if the lock has been unlocked by keypad, command, or RF
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_KEYPAD or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_COMMAND or
+        alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.UNLOCKED_BY_RF
+      then
+        device:emit_event(locks.unlocked())
+
+      -- Check if the lock is jammed
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.JAMMED_LOCK then
+        device:emit_event(locks.jammed())
+        
+      -- Check if panel lockout is enabled or disabled
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.PANEL_LOCKOUT_ENABLED then
+        device:emit_event(locks.panel_lockout_enabled())
+      elseif alarm_type == zwave.Notification.TYPE.ACCESS_CONTROL.PANEL_LOCKOUT_DISABLED then
+        device:emit_event(locks.panel_lockout_disabled())
+      end
+    -- Handle battery events
+    elseif event_type == zwave.CommandClass.BATTERY then
+      local battery_level = event.args.battery_level
+      device:emit_event(battery.battery(battery_level))
+    end
+  end
   
