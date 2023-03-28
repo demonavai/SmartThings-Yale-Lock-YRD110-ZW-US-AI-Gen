@@ -7,6 +7,8 @@ local capabilities = require "st.capabilities"
 local z_wave = require "st.zwave"
 local device_management = require "st.device_management"
 local utils = require "st.utils"
+local log = require "log"
+
 
 local YALE_ZWAVE_LOCK_FINGERPRINT = {
   mfr = "0129",
@@ -325,71 +327,77 @@ end
 -- .
 -- This function returns a table with device preferences for the Yale Lock
 local function device_preferences(driver, device)
-  -- Retrieve the user preferences for the device from the SmartThings app
-
-  return {
-    {
-      type = "paragraph",
-      label = "Enter the Yale Lock settings below.",
-    },
-    {
-      type = "input",
-      name = "autoLockTime",
-      label = "Auto-lock Time (seconds)",
-      description = "Enter the time (in seconds) after which the lock will automatically lock itself. Enter 0 to disable auto-lock.",
-      default = "30",
-      required = true,
-      pattern = "%d+",
-    },
-    {
-        type = "enum",
-        name = "panelLockout",
-        label = "Panel Lockout",
-        description = "Enable or disable the panel lockout feature of the lock.",
-        values = {
-          { value = "enabled", label = "Enabled" },
-          { value = "disabled", label = "Disabled" },
-        },
-        default = "disabled",
+    -- Retrieve the user preferences for the device from the SmartThings app
+    -- ...
+    local preferences = {}
+  
+    -- Add the main preferences to the 'preferences' table
+    for _, main_preference in ipairs({
+      {
+        type = "paragraph",
+        label = "Enter the Yale Lock settings below.",
+      },
+      {
+        type = "input",
+        name = "autoLockTime",
+        label = "Auto-lock Time (seconds)",
+        description = "Enter the time (in seconds) after which the lock will automatically lock itself. Enter 0 to disable auto-lock.",
+        default = "30",
         required = true,
-    },
-    {
-      type = "input",
-      name = "lockSoundVolume",
-      label = "Lock Sound Volume (0-10)",
-      description = "Enter a value from 0 to 10 to adjust the lock sound volume. Enter 0 to disable the lock sound.",
-      default = "5",
-      required = true,
-      pattern = "%d+",
-    },
-    {
-      type = "input",
-      name = "beeperVolume",
-      label = "Beeper Volume (0-10)",
-      description = "Enter a value from 0 to 10 to adjust the beeper volume. Enter 0 to disable the beeper.",
-      default = "5",
-      required = true,
-      pattern = "%d+",
-    },
-    {
-      type = "input",
-      name = "wrongCodeLimit",
-      label = "Wrong Code Limit (1-10)",
-      description = "Enter the number of times an incorrect code can be entered before the lock disables itself for a set amount of time. Enter 0 to disable this feature.",
-      default = "5",
-      required = true,
-      pattern = "%d+",
-    },
-    {
-      type = "input",
-      name = "wrongCodeDisableTime",
-      label = "Wrong Code Disable Time (minutes)",
-      description = "Enter the time (in minutes) the lock will disable itself after the wrong code limit has been reached. Enter 0 to disable this feature.",
-      default = "5",
-      required = true,
-      pattern = "%d+",
-    },
-  }
+        pattern = "%d+",
+        },
+        {
+            type = "enum",
+            name = "panelLockout",
+            label = "Panel Lockout",
+            description = "Enable or disable the panel lockout feature of the lock.",
+            values = {
+            { value = "enabled", label = "Enabled" },
+            { value = "disabled", label = "Disabled" },
+            },
+            default = "disabled",
+            required = true,
+        },
+        {
+        type = "input",
+        name = "lockSoundVolume",
+        label = "Lock Sound Volume (0-10)",
+        description = "Enter a value from 0 to 10 to adjust the lock sound volume. Enter 0 to disable the lock sound.",
+        default = "5",
+        required = true,
+        pattern = "%d+",
+        },
+        {
+        type = "input",
+        name = "beeperVolume",
+        label = "Beeper Volume (0-10)",
+        description = "Enter a value from 0 to 10 to adjust the beeper volume. Enter 0 to disable the beeper.",
+        default = "5",
+        required = true,
+        pattern = "%d+",
+        },
+        {
+        type = "input",
+        name = "wrongCodeLimit",
+        label = "Wrong Code Limit (1-10)",
+        description = "Enter the number of times an incorrect code can be entered before the lock disables itself for a set amount of time. Enter 0 to disable this feature.",
+        default = "5",
+        required = true,
+        pattern = "%d+",
+        },
+        {
+        type = "input",
+        name = "wrongCodeDisableTime",
+        label = "Wrong Code Disable Time (minutes)",
+        description = "Enter the time (in minutes) the lock will disable itself after the wrong code limit has been reached. Enter 0 to disable this feature.",
+        default = "5",
+        required = true,
+        pattern = "%d+",
+        },
+        -- ...
+      }) do
+        table.insert(preferences, main_preference)
+      end
 
   -- Retrieve the existing user codes
     -- Create an empty table to store the user code preferences
@@ -426,6 +434,7 @@ local function device_preferences(driver, device)
     table.insert(preferences, userCode)
     end
 
+    return preferences
 end
 
 -- .
@@ -471,7 +480,7 @@ local function update_device(driver, device, event)
       local battery_level = event.args.battery_level
       device:emit_event(battery.battery(battery_level))
     end
-  end
+end
 
 
 
